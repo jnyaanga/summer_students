@@ -1,0 +1,181 @@
+wo---
+title: "Tidy&Process Data"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: paper
+    toc_depth: 3
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Today we are going to tidy and process our data into a suitable format for future plotting.  
+I will break down the steps for manipulating and tidying the data into 6 main steps below.  
+
+## Load Packages and Read Data
+Similar to last week, let's begin by loading the packages that we will need today.  
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(here)
+```
+
+Great. Now I will read in the data the same way we did last week.  
+*This step only needs to be done once*
+
+```{r, message=FALSE, warning=FALSE}
+#list files
+files <- list.files(here::here(),full.names = TRUE)[1:3]
+files
+
+#read in data from files
+worms <- purrr::map_dfr(files, ~readr::read_csv(.x))
+```
+```{r, echo = FALSE}
+knitr::kable(worms[1:4,], caption = "First 4 rows of data")
+```
+
+## Integrate **dplyr** and **tidyr** to manipulate and tidy data  
+  
+### Goal: Add a new column called Row. Select only the columns we need for future analysis.  
+This first step has two parts.  
+
+1. We are going to use **dplyr::mutate** to add a column called Row. At this point we are just going to assign this new column with the actual row number. So Row 5 will have the value 5, Row 50 will be 50, Row 100 will be 100 and so on. We will be using this Row for other things later on.  
+  
+2. We will use **dplyr::select** to select only the following columns: Row, Label, and Length. These are the only three we need for our next steps.  
+
+Notice, we are using pipes for the first time! It makes coding much easier since we can now do these two steps back to back. R will already know what to use as an input for each function so you only need to designate the dataframe worms once.
+
+```{r}
+step1 <- worms %>%
+  dplyr::mutate(Row = row_number()) %>%
+  dplyr::select(Row, Label, Length)
+```
+```{r, echo = F}
+knitr::kable(step1[1:4,], caption = "First 4 rows of data")
+```
+
+### Goal: Separate the column Label into multiple columns of information
+We talked about how the column Label holds a lot of information that we would like to separate into multiple columns. We will do this with two main steps.  
+
+1. The bulk of our separating happens here. We use **tidyr::separate** to separate Label into 5 columns (Plate, Experiment, Hour, Magnification, and Well) by any punctuation.  
+    - If we just do this we will notice that the Hour column has values that look like this -> H01, H02... H72. This is not quite what we would like. We do not want the letter "H" to be a part of this column. In order to take care of this we must do the following step.  
+
+2. We will change the column Hour using **dplyr::mutate**. We are also using a new package here called **stringr**, I don't want to spend time talking about this additional package but basically we use **stringr::str_extract** to identify certain patterns in strings of words. 
+    - In this case the pattern we are looking for is 2 digits next to each other, to write this in code we say pattern = "[:digit:]{2}".  
+
+```{r warning=TRUE}
+step2 <- step1 %>%
+  tidyr::separate(Label, into=c("Plate", "Experiment", "Hour", "Magnification", "Well"), sep="[:punct:]") %>%
+  dplyr::mutate(Hour = stringr::str_extract(Hour, pattern = "[:digit:]{2}"))
+```
+```{r, echo = F}
+knitr::kable(step2[1:4,], caption = "First 4 rows of data")
+```
+
+Also notice that we get a warning out of this run. R is alerting us that it expected to separate the column Label into 6 pieces but we only gave it 5 new columns. It is telling us that it discarded the additional information it separated. In our case this is perfectly okay. However you can image that in some other case this warning would be helpful to alerting you that you forgot to include enough columns to contain all of your information.  
+  
+### Goal: Group the data by Animal (ie. Length and Width measured for a single animal)  
+When you guys were collecting measurements, you were careful to always measure the length of an animal first and the width of the same animal second. So in our dataframe every two rows corresponds to a single animal. We now need to make that designation. This will be done in a single step.  
+
+We will use **dplyr::group_by** to both group the data and create a new column to show these groupoings. (I actually just learned how to do this a few weeks ago and tbh I am not entirely sure how it works but it works so that's what matters)  
+
+```{r}
+step3 <- step2 %>%
+  dplyr::group_by(Animal = rep(row_number(), length.out = n(), each = 2)) 
+```
+```{r, echo = F}
+knitr::kable(step3[1:4,], caption = "First 4 rows of data")
+```
+
+Now we should have a dataframe that has a new column called Animal that shows a single animal for each Length and Width measurement.  
+
+### Goal: Tell R which measurement is a Length and which is a Width
+So now that we have grouped the data by Animal we want to actually designate which value is *Length* and which is *Width*. To do this we are going to use **dplyr::mutate** again. But now we are going to change the column Row that we created in step 1.  
+
+We need a simple way to tell R which measurements should be *Length* and which should be *Width*. What I came up with is telling R that we have two possible scenarios (or cases). A case where:  
+
+1. The value in the Length column is ***less than 60*** -- and therefore is a *Width* measurement  
+or ....  
+
+2. The value in Length is ***greater than or equal to 60*** -- and therefore is a *Length* measurement. 
+
+To apply these two conditions in code we use the function **dplyr::case_when**
+```{r}
+step4 <- step3 %>%
+  dplyr::mutate(Row = dplyr::case_when(Length < 60 ~ "Width",
+                                       Length >= 60 ~ "Length"))
+```
+```{r, echo = F}
+knitr::kable(step4[1:4,], caption = "First 4 rows of data")
+```
+
+And just like that we now know which Rows correspond to Length measurements and which correspond to Width. 
+*I tested this out with everyones data and it should uniformly work for you all*  
+
+### Goal: Spread out the Length and Width data into separate columns
+Now we are getting towards the end of the "tidy & manipulate" section. The final thing we want to do here is spread out the data to make it wider. We would like to have two separate columns for Length and Width. To do so we will use the function **tidyr::pivot_wider**. 
+
+ - The new column names we want are in the current column Row while the values for each are in the current column Length. 
+
+```{r}
+step5 <- step4 %>%
+  tidyr::pivot_wider(names_from = Row, values_from = Length)
+```
+```{r, echo = F}
+knitr::kable(step5[1:4,], caption = "First 4 rows of data")
+```
+
+## Process Data
+The last thing we are going to do is a bit of data processing. We talked about wanting to not only be able to plot what happens Length and Width over time but also Volume. As such, we will first need to create a Volume column.  
+
+### Goal: Calculate volume of an animal and store this value in a new column
+Again we are using **dplyr::mutate** to add a new column. We will actually create 2 new columns. The first will be Radius. This time instead of assigning a new column to a single value we will be assigning it to an equation. 
+
+We know that the Radius of an object is simply its Width/2. So all we need to tell R is to do this calculation. Similarly we will do this to assign the Volume column (except in this case the equation is slightly longer).  
+*Note: R already knows pi stands for the long mathematical constant 3.14...*
+
+```{r}
+step6 <- step5 %>%
+    dplyr::mutate(Radius = Width/2, 
+                  Volume = pi*Radius^2*Length)
+```
+```{r, echo = F}
+knitr::kable(step6[1:4,], caption = "First 4 rows of data")
+```
+
+### Goal: Convert pixels to microns
+Great! So we could basically be done now. But I want to do one last thing. The measurements you took from my images were all in pixels. We will now convert pixels to microns. This again is done using **dplyr::mutate** (a function with extreme versatility and application if you haven't realized already).  
+
+Essentially we are replacing the values already held in these columns. 
+
+```{r}
+tidydata <- step6 %>%
+    dplyr::mutate(Length = 3.2937*Length,
+                  Width = 3.2937*Width,
+                  Radius = 3.2937*Radius,
+                  Volume = 3.2937*Volume)
+```
+```{r, echo = F}
+knitr::kable(tidydata[1:4,], caption = "First 4 rows of data")
+```
+
+Great job! Now we have a tidy dataframe that is ready for us to plot. We will learn plotting basics next week. 
+
+Try these steps out on your own this week. Now that you have been introduced to piping (%>%) can you figure out how to string all these steps into a single block of code?
+
+ie:
+
+    tidydata <- worms %>%
+                (step 1 code) %>%
+                (step 2 code) %>%
+                (step 3 code) %>%
+                etc...
+
+
+
+

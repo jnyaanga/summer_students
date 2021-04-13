@@ -1,0 +1,286 @@
+---
+title: "Data Visualization"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: paper
+    toc_depth: 3
+
+---
+
+Today is our last day of our basic R introduction. We will be plotting our data using ggplot2! 
+
+## Load Packages and Read Data
+Similar to the last few weeks, let's begin by loading the packages that we will need today.  
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(here)
+```
+
+Great. Now I will read in the data the same way we've done before.  
+
+```{r, message=FALSE, warning=FALSE}
+#list files
+files <- list.files(here::here(),full.names = TRUE)[1:3]
+
+#read in data from files
+worms <- purrr::map_dfr(files, ~readr::read_csv(.x))
+```
+```{r, echo = FALSE}
+knitr::kable(worms[1:4,], caption = "First 4 rows of data")
+```
+
+## Tidy and Process Data
+And now I'm going to tidy and process the data into an appropriate format. Remember last week we did this in six steps but as I  mentioned, we can use pipes (%>%) to accomplish this in one large block of code. This is what I did below.  
+
+```{r, warning = FALSE}
+tidydata <- worms %>%
+  dplyr::mutate(row_num = row_number()) %>%
+  dplyr::select(row_num, Label, Length) %>%
+  tidyr::separate(Label, into=c("Plate", "Experiment", "Hour", "Magnification", "Well"), sep="[:punct:]") %>%
+  dplyr::mutate(Hour = stringr::str_extract(Hour, pattern = "[:digit:]{2}")) %>%
+  dplyr::group_by(Animal = rep(row_number(), length.out = n(), each = 2)) %>%
+  dplyr::mutate_at(vars(row_num), ~dplyr::case_when(Length < 60 ~ "Width",
+                                                    Length >= 60 ~ "Length")) %>%
+  tidyr::pivot_wider(names_from = row_num, values_from = Length) %>%
+  tidyr::separate(Well, into=c("Row","Column"), sep=c("(?<=[A-Za-z])(?=[0-9])")) %>%
+  dplyr::mutate(Radius = Width/2,
+                Volume = pi*Radius^2*Length,
+                Area = 2*pi*Radius*Length + 2*pi*Radius) %>%
+  dplyr::mutate(Length = 3.2937*Length,
+                Width = 3.2937*Width,
+                Radius = 3.2937*Radius,
+                Volume = 3.2937*Volume,
+                Area = 3.2937*Area)
+```
+```{r, echo = F}
+knitr::kable(tidydata[1:4,], caption = "First 4 rows of data")
+```
+  
+Doesn't using pipes make things so much more streamlined?  
+
+## Plotting with ggplot2
+
+Now we will start plotting. This is a relatively straightforward process.  
+
+### Setting up an empty plot
+The first thing we need to do is tell R that we are setting up to plot. We do this by calling **ggplot2::ggplot()**. This will open up a blank plot to the right of your Rstudio session (under the Plots tab).  
+```{r}
+ggplot2::ggplot()
+```
+
+### Designating data and x & y
+Now we will add components to this blank canvas by using **+**.  
+
+The first thing I want to add are the aesthetics. This will tell R what information you want to plot.  
+Lets tell R which **data** we want to plot. I want to plot the data held in the variable **tidydata**.  
+
+    ggplot2::ggplot(tidydata)
+
+I will not actually execute this block but give it a try yourself. Notice that this does not actually add anything to our blank plot. We must first add aesthetics. 
+
+Let's start by plotting Length. In this case we want ***x to be Hour*** and ***y to be Length***
+```{r}
+ggplot2::ggplot(tidydata) + aes(x = Hour, y = Length)
+```
+
+Notice now we have axes labels!  
+
+### Adding geometric objects
+The last thing we need to do is tell R what type of geometric object we want to plot. Let's try plotting just simple points. We will use **geom_point()**
+```{r}
+ggplot2::ggplot(tidydata) + aes(x = Hour, y = Length) + geom_point()
+```
+
+And there we have it. Now we have the basics we can play around with the aesthetics/geometric object.  
+
+### Adding more aesthetics
+Let's start by adding to the aesthetics. Lets try changing the size of the points. 
+```{r}
+ggplot2::ggplot(tidydata) + aes(x = Hour, y = Length, size = 4) + geom_point()
+```
+
+By adding the designation for size to the **aes()** argument, notice that R puts this information in the plot legend. To avoid this we could place the size information directly in the **geom_point()** argument.
+```{r}
+ggplot2::ggplot(tidydata) + aes(x = Hour, y = Length) + geom_point(size = 4)
+```
+
+Typically we place information in **aes()** when we want to use information thats in our dataframe (tidydata). For example, let's say we want to color the points based on the Column they are from. In this case we would place color in **aes()**. If we placed it in the **geom_point()** argument, R would throw an error -- feel free to try it out. 
+```{r}
+ggplot2::ggplot(tidydata) + aes(x = Hour, y = Length, color = Column) + geom_point(size = 4)
+```
+
+### Layering geometric objects
+Not only can we change the aesthetics but we can also change the geometric object we are plotting. Lets try making a boxplot rather than points. This is as simple as changing the last argument from **geom_point()** to **geom_boxplot()**
+```{r}
+ggplot2::ggplot(tidydata) + aes(x = Hour, y = Length, color = Column) + geom_boxplot()
+```
+
+Because we still have the color defined in **aes()** notice that there is a separate boxplot for each Column. 
+Try removing the color from **aes()** and see what happens.   
+
+So for our purposes I like to use a geometric object similar to **geom_point()** but that won't result in points laying directly on top of each other. I like to use **geom_jitter()**...
+```{r}
+ggplot2::ggplot(tidydata) + aes(x = Hour, y = Length) + geom_jitter()
+```
+
+Using **geom_jitter()** I also like to specify how much wiggle (or jitter) the points have. I like to keep their jitter pretty narrow. This can be changed by adding a width designation...
+```{r}
+ggplot2::ggplot(tidydata) + aes(x = Hour, y = Length) + geom_jitter(width = 0.2)
+```
+
+We can also layer two geometric shapes on top of each other! Let's try adding **geom_boxplot()** to **geom_jitter()**. This is as simple as tacking it on the end:
+```{r}
+ggplot2::ggplot(tidydata) + aes(x = Hour, y = Length) + geom_boxplot() + geom_jitter(width = 0.2) 
+```
+
+However, the order that you add componenets to the plot will be the order they are added. As a personal preference I like having points in front of boxplots -- this is why I add the boxplot first and the geom_jitter second.
+
+### Adding plot labels
+The last thing I want to talk about is adding axes labels and titles to the plot. For this we use the argument **labs**.
+```{r}
+ggplot2::ggplot(tidydata) + aes(x = Hour, y = Length) + geom_boxplot() + geom_jitter(width = 0.2) + 
+  labs(x = "Time (Hours)", y = "Animal Length (um)", title = "Animal Length over Time")
+```
+
+And that's really about it. You can play around with what you want to plot in **x** and **y**, as well as aesthetics like size and color.   
+*alpha just makes objects more transparent. The smaller the alpha the more transparent the object*
+```{r}
+ggplot2::ggplot(tidydata) + aes(x = Hour, y = Volume) + geom_boxplot(size = 0.5) + geom_jitter(size = 0.6, alpha = 0.8, width = 0.2) + 
+  labs(x = "Time (Hours)", y = "Animal Volume", title = "Animal Volume over Time")
+```
+
+
+## Putting it all together
+And with these basics and a few extra things, that's how I can make plots like this, with all of your data put together.
+```{r echo=FALSE, fig.height=6, fig.width=15, message=FALSE, warning=FALSE}
+library(cowplot)
+
+Izzy <- c("/Users/grad/Box/Joy_worm_images/Izzy")
+Justine <- c("/Users/grad/Box/Joy_worm_images/Justine")
+Jordan <- c("/Users/grad/Box/Joy_worm_images/Jordan")
+Hannah <- c("/Users/grad/Box/Joy_worm_images/Hannah")
+Iris <- c("/Users/grad/Box/Joy_worm_images/Iris")
+izzy <- list.files(Izzy, full.names = T)[1:72] %>%
+  purrr::map_dfr(., ~readr::read_csv(.x)) %>%
+  dplyr::mutate(Student = "Izzy") %>%
+  dplyr::mutate(row_num = row_number()) %>%
+  dplyr::select(row_num, Label, Length, Student) %>%
+  dplyr::group_by(Animal = rep(row_number(), length.out = n(), each = 2)) %>%
+  dplyr::mutate_at(vars(row_num), ~dplyr::case_when(Length < 60 ~ "Width",
+                                      Length >= 60 ~ "Length")) %>%
+  tidyr::pivot_wider(names_from = row_num, values_from = Length) %>%
+  tidyr::separate(Label, into=c("Plate", "Experiment", "Hour", "Magnification", "Well"), sep="[:punct:]") %>%
+  dplyr::mutate(Hour = stringr::str_extract(Hour, pattern = "[:digit:]{2}")) %>%
+  tidyr::separate(Well, into=c("Row","Column"), sep=c("(?<=[A-Za-z])(?=[0-9])")) %>%
+  dplyr::mutate(Radius = Width/2,
+                Volume = pi*Radius^2*Length,
+                Area = 2*pi*Radius*Length + 2*pi*Radius) %>%
+  dplyr::mutate(Length = 3.2937*Length,
+                Width = 3.2937*Width,
+                Radius = 3.2937*Radius,
+                Volume = 3.2937*Volume,
+                Area = 3.2937*Area)
+
+justine <- list.files(Justine, full.names = T)[1:140] %>%
+  purrr::map_dfr(., ~readr::read_csv(.x)) %>%
+  dplyr::mutate(Student = "Justine") %>%
+  dplyr::mutate(row_num = row_number()) %>%
+  dplyr::select(row_num, Label, Length, Student) %>%
+  dplyr::group_by(Animal = rep(row_number(), length.out = n(), each = 2)) %>%
+  dplyr::mutate_at(vars(row_num), ~dplyr::case_when(Length < 60 ~ "Width",
+                                      Length >= 60 ~ "Length")) %>%
+  tidyr::pivot_wider(names_from = row_num, values_from = Length) %>%
+  tidyr::separate(Label, into=c("Plate", "Experiment", "Hour", "Magnification", "Well"), sep="[:punct:]") %>%
+  dplyr::mutate(Hour = stringr::str_extract(Hour, pattern = "[:digit:]{2}")) %>%
+  tidyr::separate(Well, into=c("Row","Column"), sep=c("(?<=[A-Za-z])(?=[0-9])")) %>%
+  dplyr::mutate(Radius = Width/2,
+                Volume = pi*Radius^2*Length,
+                Area = 2*pi*Radius*Length + 2*pi*Radius) %>%
+  dplyr::mutate(Length = 3.2937*Length,
+                Width = 3.2937*Width,
+                Radius = 3.2937*Radius,
+                Volume = 3.2937*Volume,
+                Area = 3.2937*Area)
+
+jordan <- list.files(Jordan, full.names = T)[1:72] %>%
+  purrr::map_dfr(., ~readr::read_csv(.x)) %>%
+  dplyr::mutate(Student = "Jordan") %>%
+  dplyr::mutate(row_num = row_number()) %>%
+  dplyr::select(row_num, Label, Length, Student) %>%
+  dplyr::group_by(Animal = rep(row_number(), length.out = n(), each = 2)) %>%
+  dplyr::mutate_at(vars(row_num), ~dplyr::case_when(Length < 60 ~ "Width",
+                                      Length >= 60 ~ "Length")) %>%
+  tidyr::pivot_wider(names_from = row_num, values_from = Length) %>%
+  tidyr::separate(Label, into=c("Plate", "Experiment", "Hour", "Magnification", "Well"), sep="[:punct:]") %>%
+  dplyr::mutate(Hour = stringr::str_extract(Hour, pattern = "[:digit:]{2}")) %>%
+  tidyr::separate(Well, into=c("Row","Column"), sep=c("(?<=[A-Za-z])(?=[0-9])")) %>%
+  dplyr::mutate(Radius = Width/2,
+                Volume = pi*Radius^2*Length,
+                Area = 2*pi*Radius*Length + 2*pi*Radius) %>%
+  dplyr::mutate(Length = 3.2937*Length,
+                Width = 3.2937*Width,
+                Radius = 3.2937*Radius,
+                Volume = 3.2937*Volume,
+                Area = 3.2937*Area)
+
+hannah <- list.files(Hannah, full.names = T)[1:72] %>%
+  purrr::map_dfr(., ~readr::read_csv(.x)) %>%
+  dplyr::mutate(Student = "Hannah") %>%
+  dplyr::mutate(row_num = row_number()) %>%
+  dplyr::select(row_num, Label, Length, Student) %>%
+  dplyr::group_by(Animal = rep(row_number(), length.out = n(), each = 2)) %>%
+  dplyr::mutate_at(vars(row_num), ~dplyr::case_when(Length < 60 ~ "Width",
+                                      Length >= 60 ~ "Length")) %>%
+  tidyr::pivot_wider(names_from = row_num, values_from = Length) %>%
+  tidyr::separate(Label, into=c("Plate", "Experiment", "Hour", "Magnification", "Well"), sep="[:punct:]") %>%
+  dplyr::mutate(Hour = stringr::str_extract(Hour, pattern = "[:digit:]{2}")) %>%
+  tidyr::separate(Well, into=c("Row","Column"), sep=c("(?<=[A-Za-z])(?=[0-9])")) %>%
+  dplyr::mutate(Radius = Width/2,
+                Volume = pi*Radius^2*Length,
+                Area = 2*pi*Radius*Length + 2*pi*Radius) %>%
+  dplyr::mutate(Length = 3.2937*Length,
+                Width = 3.2937*Width,
+                Radius = 3.2937*Radius,
+                Volume = 3.2937*Volume,
+                Area = 3.2937*Area)
+
+iris <- list.files(Iris, full.names = T)[1:77] %>%
+  purrr::map_dfr(., ~readr::read_csv(.x)) %>%
+  dplyr::mutate(Student = "Iris") %>%
+  dplyr::mutate(row_num = row_number()) %>%
+  dplyr::select(row_num, Label, Length, Student) %>%
+  dplyr::group_by(Animal = rep(row_number(), length.out = n(), each = 2)) %>%
+  dplyr::mutate_at(vars(row_num), ~dplyr::case_when(Length < 60 ~ "Width",
+                                      Length >= 60 ~ "Length")) %>%
+  tidyr::pivot_wider(names_from = row_num, values_from = Length) %>%
+  tidyr::separate(Label, into=c("Plate", "Experiment", "Hour", "Magnification", "Well"), sep="[:punct:]") %>%
+  dplyr::mutate(Hour = stringr::str_extract(Hour, pattern = "[:digit:]{2}")) %>%
+  tidyr::separate(Well, into=c("Row","Column"), sep=c("(?<=[A-Za-z])(?=[0-9])")) %>%
+  dplyr::mutate(Radius = Width/2,
+                Volume = pi*Radius^2*Length,
+                Area = 2*pi*Radius*Length + 2*pi*Radius) %>%
+  dplyr::mutate(Length = 3.2937*Length,
+                Width = 3.2937*Width,
+                Radius = 3.2937*Radius,
+                Volume = 3.2937*Volume,
+                Area = 3.2937*Area)
+
+all <- bind_rows(hannah, jordan, iris, justine, izzy) %>%
+  dplyr::mutate(Hour = as.numeric(Hour))
+
+l <- ggplot2::ggplot(all) + aes(x = Hour, y = Length, color = Student) + geom_jitter(size = 0.5, alpha = 0.3, width = 0.2) + 
+  labs(x = "Time (Hours)", y = "Animal Length") + theme_cowplot(18) 
+w <- ggplot2::ggplot(all) + aes(x = Hour, y = Width, color = Student) + geom_jitter(size = 0.5, alpha = 0.3, width = 0.2) + 
+  labs(x = "Time (Hours)", y = "Animal Width") + theme_cowplot(18)  + guides(color = F)
+a <- ggplot2::ggplot(all) + aes(x = Hour, y = Area, color = Student) + geom_jitter(size = 0.5, alpha = 0.3, width = 0.2) + 
+  labs(x = "Time (Hours)", y = "Animal Area") + theme_cowplot(18)
+v <- ggplot2::ggplot(all) + aes(x = Hour, y = Volume, color = Student) + geom_jitter(size = 0.5, alpha = 0.3, width = 0.2) + 
+  labs(x = "Time (Hours)", y = "Animal Volume") + theme_cowplot(18) + guides(color = F)
+
+plot_grid(l, w, align = "hv", axis = "tblr", ncol = 2)
+```
+
+

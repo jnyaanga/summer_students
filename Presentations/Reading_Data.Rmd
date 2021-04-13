@@ -1,0 +1,107 @@
+---
+title: "Reading Data"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Load Packages
+
+Lets start by loading in information from necessary packages:  
+Notice that the **here package** is indicating that I am in my folder under Joy_worm_images.  
+
+```{r, warnings = F}
+library(tidyverse)
+library(here)
+```
+
+### Using the here package
+
+Lets see how the **here package** works.  
+We can use the function **list.files** to list files in a given directory...  
+This will give us information about what is in your folder.  
+
+*Notice - I am using the notation **here::here()**... this is called specifying the name space. This lets other people who read your code know which package your function belongs to. So in this case we are using the **here()** function that is present in the **here** package*
+
+```{r}
+list.files(here::here())
+```
+
+Cool, so what if we want to read a file in the folder? This is where tidyverse comes in!   
+Remember, tidyverse is essentially a universe of R packages...  
+We will use the **read_csv()** function present in the **readr package** (housed in tidyverse).  
+
+Here's what that looks like:
+```{r, results = 'hide'}
+readr::read_csv(here::here("20200519_jordan_H01.csv"))
+```
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+f <- readr::read_csv(here::here("20200519_jordan_H01.csv"))
+knitr::kable(f[1:6,], caption = "First 6 rows of dataframe")
+```
+
+### Using the here package with tidyverse
+But what if there's more than one file in your directory? (which in your case there are)  
+We would not want to write out the file name each time... instead lets assign all the files to a variable and then read.
+
+```{r}
+# I don't want to include the folders "Presenations" and "R scripts" so I am specifying th number of objects unlike above
+# I am also adding in "full.names = TRUE" to get the full pathname for each file (ensures we won't have issues later on)
+files <- list.files(here::here(), full.names = TRUE)[1:3]
+files
+```
+
+Now we are going to use a function in the **purrr** package (also part of tidyverse) called **map_dfr()** to go through all the elements in the variable *files* and read each. Don't worry too much about the notation used for purrr... if you are curious to know more about purrr feel free to reach out to me.
+
+```{r, message = FALSE, warning = FALSE}
+worms <- purrr::map_dfr(files, ~readr::read_csv(.x))
+```
+
+Great! Now lets check out the dataframe we just loaded in...
+```{r, echo = F}
+knitr::kable(worms[1:10,], caption = "First 10 rows of the worms dataframe")
+```
+
+And there you have it! We have identified files in our directory that we are interested in, and we have used **purrr** and **readr** to read in each file. 
+
+### Give it a try yourself...
+We can use the above basics to look at data in your own folder.  
+Begin by listing files. For example, let me pretend I'm working in Izzy's folder. Let's list the files found here:
+```{r}
+# you will not write a path here. I must do this because I'm entering a folder that is not my own
+# your code should look like: list.files(here::here())
+list.files("/Users/joy/Box/Joy_worm_images/Izzy")
+```
+
+Notice that at the end there is a file that is NOT a .csv file. You do not want to read this so we will need to tell R which files we want to read, similar to what I did before...
+```{r}
+list.files("/Users/joy/Box/Joy_worm_images/Izzy")[1:60]
+```
+
+Awesome okay, now lets assign these to a variable so we can call them in the next step:
+```{r}
+# remember we want to use the full names to avoid downstream problems
+files <- list.files("/Users/joy/Box/Joy_worm_images/Izzy", full.names = TRUE)[1:60]
+## your code will look like this: files <- list.files(here::here(), full.names = TRUE)[1:__]
+```
+
+Now lets read in all files:
+```{r, message = FALSE, warning = FALSE}
+worms <- purrr::map_dfr(files, ~readr::read_csv(.x))
+```
+
+Aaand here we are:
+```{r, echo = FALSE}
+knitr::kable(worms[1:10,], caption = "First 10 rows of Izzy's data")
+```
+
+### Explore your data
+Try some of these functions:  
+1. colnames(worms) - gives the names of columns  
+2. dim(worms) - outputs the number of rows then columns  
+3. summary(worms) - outputs the summary statistics  
+4. str(worms) - gives structure information of the df  
+  
+#### Next week we will work to tidy and process our data into a suitable format for plotting.
