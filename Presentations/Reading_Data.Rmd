@@ -47,7 +47,7 @@ But what if there's more than one file in your directory? (which in your case th
 We would not want to write out the file name each time... instead lets assign all the files to a variable and then read.
 
 ```{r}
-# I don't want to include the folders "Presenations" and "R scripts" so I am specifying th number of objects unlike above
+# I don't want to include the folders "Presentations" and "R scripts" so I am specifying the number of objects unlike above
 # I am also adding in "full.names = TRUE" to get the full pathname for each file (ensures we won't have issues later on)
 files <- list.files(here::here(), full.names = TRUE)[1:3]
 files

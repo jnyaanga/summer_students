@@ -371,16 +371,16 @@ summary {
 <p>Lets start by loading in information from necessary packages:<br />
 Notice that the <strong>here package</strong> is indicating that I am in my folder under Joy_worm_images.</p>
 <pre class="r"><code>library(tidyverse)</code></pre>
-<pre><code>## ── Attaching packages ──────────────────────────────────────────────────────────────────────────────────── tidyverse 1.3.0 ──</code></pre>
+<pre><code>## ── Attaching packages ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── tidyverse 1.3.0 ──</code></pre>
 <pre><code>## ✓ ggplot2 3.3.2     ✓ purrr   0.3.4
-## ✓ tibble  3.0.3     ✓ dplyr   1.0.0
-## ✓ tidyr   1.1.0     ✓ stringr 1.4.0
+## ✓ tibble  3.0.3     ✓ dplyr   1.0.1
+## ✓ tidyr   1.1.1     ✓ stringr 1.4.0
 ## ✓ readr   1.3.1     ✓ forcats 0.5.0</code></pre>
-<pre><code>## ── Conflicts ─────────────────────────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
+<pre><code>## ── Conflicts ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
 ## x dplyr::filter() masks stats::filter()
 ## x dplyr::lag()    masks stats::lag()</code></pre>
 <pre class="r"><code>library(here)</code></pre>
-<pre><code>## here() starts at /Users/joy/Box/Joy_worm_images/Joy</code></pre>
+<pre><code>## here() starts at /Users/joy/Documents/GitHub/summer_students</code></pre>
 </div>
 <div id="using-the-here-package" class="section level3">
 <h3>Using the here package</h3>
@@ -391,7 +391,8 @@ This will give us information about what is in your folder.</p>
 <pre class="r"><code>list.files(here::here())</code></pre>
 <pre><code>## [1] &quot;20200519_jordan_H01.csv&quot; &quot;20200521_jordan_H02.csv&quot;
 ## [3] &quot;20200526_jordan_H03.csv&quot; &quot;Joy.Rproj&quot;              
-## [5] &quot;Presentations&quot;           &quot;R scripts&quot;</code></pre>
+## [5] &quot;Presentations&quot;           &quot;R scripts&quot;              
+## [7] &quot;README.md&quot;</code></pre>
 <p>Cool, so what if we want to read a file in the folder? This is where tidyverse comes in!<br />
 Remember, tidyverse is essentially a universe of R packages…<br />
 We will use the <strong>read_csv()</strong> function present in the <strong>readr package</strong> (housed in tidyverse).</p>
@@ -467,13 +468,13 @@ We will use the <strong>read_csv()</strong> function present in the <strong>read
 <h3>Using the here package with tidyverse</h3>
 <p>But what if there’s more than one file in your directory? (which in your case there are)<br />
 We would not want to write out the file name each time… instead lets assign all the files to a variable and then read.</p>
-<pre class="r"><code># I don't want to include the folders &quot;Presenations&quot; and &quot;R scripts&quot; so I am specifying th number of objects unlike above
+<pre class="r"><code># I don't want to include the folders &quot;Presentations&quot; and &quot;R scripts&quot; so I am specifying the number of objects unlike above
 # I am also adding in &quot;full.names = TRUE&quot; to get the full pathname for each file (ensures we won't have issues later on)
 files &lt;- list.files(here::here(), full.names = TRUE)[1:3]
 files</code></pre>
-<pre><code>## [1] &quot;/Users/joy/Box/Joy_worm_images/Joy/20200519_jordan_H01.csv&quot;
-## [2] &quot;/Users/joy/Box/Joy_worm_images/Joy/20200521_jordan_H02.csv&quot;
-## [3] &quot;/Users/joy/Box/Joy_worm_images/Joy/20200526_jordan_H03.csv&quot;</code></pre>
+<pre><code>## [1] &quot;/Users/joy/Documents/GitHub/summer_students/20200519_jordan_H01.csv&quot;
+## [2] &quot;/Users/joy/Documents/GitHub/summer_students/20200521_jordan_H02.csv&quot;
+## [3] &quot;/Users/joy/Documents/GitHub/summer_students/20200526_jordan_H03.csv&quot;</code></pre>
 <p>Now we are going to use a function in the <strong>purrr</strong> package (also part of tidyverse) called <strong>map_dfr()</strong> to go through all the elements in the variable <em>files</em> and read each. Don’t worry too much about the notation used for purrr… if you are curious to know more about purrr feel free to reach out to me.</p>
 <pre class="r"><code>worms &lt;- purrr::map_dfr(files, ~readr::read_csv(.x))</code></pre>
 <p>Great! Now lets check out the dataframe we just loaded in…</p>
@@ -570,27 +571,81 @@ Begin by listing files. For example, let me pretend I’m working in Izzy’s fo
 <pre class="r"><code># you will not write a path here. I must do this because I'm entering a folder that is not my own
 # your code should look like: list.files(here::here())
 list.files(&quot;/Users/joy/Box/Joy_worm_images/Izzy&quot;)</code></pre>
-<pre><code>##  [1] &quot;20200604_Izzy_H01.csv&quot; &quot;20200604_Izzy_H02.csv&quot; &quot;20200607_Izzy_H03.csv&quot;
-##  [4] &quot;20200607_Izzy_H05.csv&quot; &quot;20200610_Izzy_H04.csv&quot; &quot;20200621_Izzy_H06.csv&quot;
-##  [7] &quot;20200621_Izzy_H07.csv&quot; &quot;20200621_Izzy_H08.csv&quot; &quot;20200621_Izzy_H09.csv&quot;
-## [10] &quot;20200622_Izzy_H10.csv&quot; &quot;20200622_Izzy_H11.csv&quot; &quot;20200623_Izzy_H12.csv&quot;
-## [13] &quot;20200623_Izzy_H13.csv&quot; &quot;20200629_Izzy_H14.csv&quot; &quot;20200629_Izzy_H15.csv&quot;
-## [16] &quot;20200630_Izzy_H16.csv&quot; &quot;20200630_Izzy_H17.csv&quot; &quot;20200630_Izzy_H18.csv&quot;
-## [19] &quot;20200630_Izzy_H19.csv&quot; &quot;20200630_Izzy_H20.csv&quot; &quot;20200705_Izzy_H21.csv&quot;
-## [22] &quot;20200705_Izzy_H22.csv&quot; &quot;20200705_Izzy_H23.csv&quot; &quot;20200706_Izzy_H24.csv&quot;
-## [25] &quot;20200706_Izzy_H25.csv&quot; &quot;20200706_Izzy_H26.csv&quot; &quot;20200706_Izzy_H27.csv&quot;
-## [28] &quot;20200706_Izzy_H28.csv&quot; &quot;20200706_Izzy_H29.csv&quot; &quot;20200706_Izzy_H30.csv&quot;
-## [31] &quot;20200707_Izzy_H31.csv&quot; &quot;20200707_Izzy_H32.csv&quot; &quot;20200707_Izzy_H33.csv&quot;
-## [34] &quot;20200709_Izzy_H34.csv&quot; &quot;20200709_Izzy_H35.csv&quot; &quot;20200709_Izzy_H36.csv&quot;
-## [37] &quot;20200709_Izzy_H37.csv&quot; &quot;20200709_Izzy_H38.csv&quot; &quot;20200709_Izzy_H39.csv&quot;
-## [40] &quot;20200709_Izzy_H40.csv&quot; &quot;20200713_Izzy_H41.csv&quot; &quot;20200713_Izzy_H42.csv&quot;
-## [43] &quot;20200715_Izzy_H43.csv&quot; &quot;20200715_Izzy_H44.csv&quot; &quot;20200715_Izzy_H45.csv&quot;
-## [46] &quot;20200715_Izzy_H46.csv&quot; &quot;20200715_Izzy_H47.csv&quot; &quot;20200715_Izzy_H48.csv&quot;
-## [49] &quot;20200715_Izzy_H49.csv&quot; &quot;20200715_Izzy_H50.csv&quot; &quot;20200715_Izzy_H51.csv&quot;
-## [52] &quot;20200717_Izzy_H52.csv&quot; &quot;20200718_Izzy_H53.csv&quot; &quot;20200718_Izzy_H54.csv&quot;
-## [55] &quot;20200719_Izzy_H55.csv&quot; &quot;20200720_Izzy_H56.csv&quot; &quot;20200720_Izzy_H57.csv&quot;
-## [58] &quot;20200721_Izzy_H58.csv&quot; &quot;20200721_Izzy_H59.csv&quot; &quot;20200721_Izzy_H60.csv&quot;
-## [61] &quot;Izzy.Rproj&quot;</code></pre>
+<pre><code>##  [1] &quot;20200604_Izzy_H01.csv&quot;                       
+##  [2] &quot;20200604_Izzy_H02.csv&quot;                       
+##  [3] &quot;20200607_Izzy_H03.csv&quot;                       
+##  [4] &quot;20200607_Izzy_H05.csv&quot;                       
+##  [5] &quot;20200610_Izzy_H04.csv&quot;                       
+##  [6] &quot;20200621_Izzy_H06.csv&quot;                       
+##  [7] &quot;20200621_Izzy_H07.csv&quot;                       
+##  [8] &quot;20200621_Izzy_H08.csv&quot;                       
+##  [9] &quot;20200621_Izzy_H09.csv&quot;                       
+## [10] &quot;20200622_Izzy_H10.csv&quot;                       
+## [11] &quot;20200622_Izzy_H11.csv&quot;                       
+## [12] &quot;20200623_Izzy_H12.csv&quot;                       
+## [13] &quot;20200623_Izzy_H13.csv&quot;                       
+## [14] &quot;20200629_Izzy_H14.csv&quot;                       
+## [15] &quot;20200629_Izzy_H15.csv&quot;                       
+## [16] &quot;20200630_Izzy_H16.csv&quot;                       
+## [17] &quot;20200630_Izzy_H17.csv&quot;                       
+## [18] &quot;20200630_Izzy_H18.csv&quot;                       
+## [19] &quot;20200630_Izzy_H19.csv&quot;                       
+## [20] &quot;20200630_Izzy_H20.csv&quot;                       
+## [21] &quot;20200705_Izzy_H21.csv&quot;                       
+## [22] &quot;20200705_Izzy_H22.csv&quot;                       
+## [23] &quot;20200705_Izzy_H23.csv&quot;                       
+## [24] &quot;20200706_Izzy_H24.csv&quot;                       
+## [25] &quot;20200706_Izzy_H25.csv&quot;                       
+## [26] &quot;20200706_Izzy_H26.csv&quot;                       
+## [27] &quot;20200706_Izzy_H27.csv&quot;                       
+## [28] &quot;20200706_Izzy_H28.csv&quot;                       
+## [29] &quot;20200706_Izzy_H29.csv&quot;                       
+## [30] &quot;20200706_Izzy_H30.csv&quot;                       
+## [31] &quot;20200707_Izzy_H31.csv&quot;                       
+## [32] &quot;20200707_Izzy_H32.csv&quot;                       
+## [33] &quot;20200707_Izzy_H33.csv&quot;                       
+## [34] &quot;20200709_Izzy_H34.csv&quot;                       
+## [35] &quot;20200709_Izzy_H35.csv&quot;                       
+## [36] &quot;20200709_Izzy_H36.csv&quot;                       
+## [37] &quot;20200709_Izzy_H37.csv&quot;                       
+## [38] &quot;20200709_Izzy_H38.csv&quot;                       
+## [39] &quot;20200709_Izzy_H39.csv&quot;                       
+## [40] &quot;20200709_Izzy_H40.csv&quot;                       
+## [41] &quot;20200713_Izzy_H41.csv&quot;                       
+## [42] &quot;20200713_Izzy_H42.csv&quot;                       
+## [43] &quot;20200715_Izzy_H43.csv&quot;                       
+## [44] &quot;20200715_Izzy_H44.csv&quot;                       
+## [45] &quot;20200715_Izzy_H45.csv&quot;                       
+## [46] &quot;20200715_Izzy_H46.csv&quot;                       
+## [47] &quot;20200715_Izzy_H47.csv&quot;                       
+## [48] &quot;20200715_Izzy_H48.csv&quot;                       
+## [49] &quot;20200715_Izzy_H49.csv&quot;                       
+## [50] &quot;20200715_Izzy_H50.csv&quot;                       
+## [51] &quot;20200715_Izzy_H51.csv&quot;                       
+## [52] &quot;20200717_Izzy_H52.csv&quot;                       
+## [53] &quot;20200718_Izzy_H53.csv&quot;                       
+## [54] &quot;20200718_Izzy_H54.csv&quot;                       
+## [55] &quot;20200719_Izzy_H55.csv&quot;                       
+## [56] &quot;20200720_Izzy_H56.csv&quot;                       
+## [57] &quot;20200720_Izzy_H57.csv&quot;                       
+## [58] &quot;20200721_Izzy_H58.csv&quot;                       
+## [59] &quot;20200721_Izzy_H59.csv&quot;                       
+## [60] &quot;20200721_Izzy_H60.csv&quot;                       
+## [61] &quot;20200721_Izzy_H61.csv&quot;                       
+## [62] &quot;20200722_Izzy_H62.csv&quot;                       
+## [63] &quot;20200722_Izzy_H63.csv&quot;                       
+## [64] &quot;20200722_Izzy_H64.csv&quot;                       
+## [65] &quot;20200722_Izzy_H65.csv&quot;                       
+## [66] &quot;20200722_Izzy_H66.csv&quot;                       
+## [67] &quot;20200722_Izzy_H67.csv&quot;                       
+## [68] &quot;20200723_Izzy_H68.csv&quot;                       
+## [69] &quot;20200723_Izzy_H69.csv&quot;                       
+## [70] &quot;20200723_Izzy_H70.csv&quot;                       
+## [71] &quot;20200723_Izzy_H71.csv&quot;                       
+## [72] &quot;20200723_Izzy_H72.csv&quot;                       
+## [73] &quot;Data 1 - Big FIve Personality Traits.numbers&quot;
+## [74] &quot;Izzy.Rproj&quot;                                  
+## [75] &quot;TidyData.R&quot;</code></pre>
 <p>Notice that at the end there is a file that is NOT a .csv file. You do not want to read this so we will need to tell R which files we want to read, similar to what I did before…</p>
 <pre class="r"><code>list.files(&quot;/Users/joy/Box/Joy_worm_images/Izzy&quot;)[1:60]</code></pre>
 <pre><code>##  [1] &quot;20200604_Izzy_H01.csv&quot; &quot;20200604_Izzy_H02.csv&quot; &quot;20200607_Izzy_H03.csv&quot;
